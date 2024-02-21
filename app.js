@@ -23,7 +23,7 @@ const {
 
 const authRouter = require("./routes/auth");
 const apiRouter = require("./routes/api");
-const recommendationController = require("./routes/recommendations");
+const recommendationsRouter = require("./routes/recommendations");
 
 const app = express();
 
@@ -36,7 +36,6 @@ async function main() {
   await mongoose.connect(mongoDB);
 }
 
-// Change once know origins
 const corsOptions = {
   origin: "*",
   optionsSuccessStatus: 200,
@@ -58,6 +57,7 @@ passport.use("refreshJwt", refreshJwtStrategy);
 passport.use("login", localStrategy);
 
 app.use("/auth", cors(corsOptions), authRouter);
+app.use("/recommendations", cors(corsOptions), recommendationsRouter);
 app.use("/", cors(corsOptions), apiRouter);
 
 // catch 404 and forward to error handler

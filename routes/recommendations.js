@@ -1,11 +1,10 @@
 const express = require("express");
-const Recommendation = require("../models/recommendation");
 const passport = require("passport");
 const { checkIdFormat } = require("../helpers/middleware");
 const recommendationController = require("../controllers/recommendationController");
 const router = express.Router();
 
-// Recommendation
+// Get Recommendation
 router.get(
   "/users/:id/book-recommendation",
   checkIdFormat(),
@@ -13,6 +12,7 @@ router.get(
   recommendationController.recommendation_get
 );
 
+// Create Recommendation
 router.post(
   "/users/:id/book-recommendation",
   checkIdFormat(),
@@ -20,6 +20,7 @@ router.post(
   recommendationController.recommendation_post
 );
 
+// Add View Book
 router.post(
   "/users/:id/book-recommendation/view-book",
   checkIdFormat(),
@@ -27,6 +28,7 @@ router.post(
   recommendationController.recommendation_book_view_post
 );
 
+// Add Rate Book
 router.post(
   "/users/:id/book-recommendation/rate-book",
   checkIdFormat(),
@@ -34,6 +36,7 @@ router.post(
   recommendationController.recommendation_book_rate_post
 );
 
+// Add Like Book
 router.post(
   "/users/:id/book-recommendation/like-book",
   checkIdFormat(),
@@ -41,6 +44,7 @@ router.post(
   recommendationController.recommendation_book_like_post
 );
 
+// Unlike Book
 router.post(
   "/users/:id/book-recommendation/unlike-book",
   checkIdFormat(),

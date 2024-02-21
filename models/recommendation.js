@@ -9,7 +9,7 @@ const recommendationSchema = new Schema({
   likeRecommendations: { type: Array, maxLength: 100 },
   ratingRecommendations: { type: Array, maxLength: 100 },
   revision: { type: Number, required: true },
-  createdAt: { type: Date, imumutable: true, default: () => Date.now() },
+  createdAt: { type: Date, imumutable: true },
   updatedAt: { type: Date, default: () => Date.now() },
 });
 

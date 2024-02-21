@@ -1,5 +1,6 @@
 const ObjectId = require("mongoose").Types.ObjectId;
 
+// Mechanism for providing paginated results for api entities
 exports.paginatedResults = (model) => {
   return async (req, res, next) => {
     const page = parseInt(req.query.page);
@@ -40,6 +41,7 @@ exports.paginatedResults = (model) => {
       };
     }
 
+    // Check the paginated model and populate associated fields before sending response.
     try {
       if (model.collection.collectionName == "books") {
         results.results = await model
@@ -85,6 +87,7 @@ exports.paginatedResults = (model) => {
   };
 };
 
+// Check to see if passed ID(s) are in the correct format before passing to controller.
 exports.checkIdFormat = () => {
   return (req, res, next) => {
     if (ObjectId.isValid(req.params.id) && !req.params._id) {
@@ -92,6 +95,13 @@ exports.checkIdFormat = () => {
     }
 
     if (ObjectId.isValid(req.params.id) && ObjectId.isValid(req.params._id)) {
+      return next();
+    }
+
+    if (
+      ObjectId.isValid(req.params.commentId) &&
+      ObjectId.isValid(req.params.reviewId)
+    ) {
       return next();
     }
 

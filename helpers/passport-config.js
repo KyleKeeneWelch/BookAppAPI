@@ -5,6 +5,7 @@ const bcrypt = require("bcrypt");
 
 const User = require("../models/user");
 
+// Authenticate using JSONWebToken
 exports.jwtStrategy = new Jwtstrategy(
   {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -20,6 +21,7 @@ exports.jwtStrategy = new Jwtstrategy(
   }
 );
 
+// Authenticate using refresh JSONWebToken to receive valid token
 exports.refreshJwtStrategy = new Jwtstrategy(
   {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -33,20 +35,24 @@ exports.refreshJwtStrategy = new Jwtstrategy(
   }
 );
 
+// Authenticate using email and password
 exports.localStrategy = new LocalStrategy(
   { usernameField: "email", passwordField: "password" },
   async (email, password, done) => {
     try {
+      // Search for existing user
       const result = await User.findOne({ email: email });
       if (!result) {
         return done(null, false, { message: "User not found" });
       }
+      // Check encrypted password with provided password
       const passwordMatches = await bcrypt.compare(password, result.password);
 
       if (!passwordMatches) {
         return done(null, false, { message: "Invalid credentials" });
       }
 
+      // Return user to sign as JSONWebToken
       const user = {
         id: result._id.toString(),
         first_name: result.first_name,

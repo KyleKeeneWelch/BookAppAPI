@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require("uuid");
 const User = require("../models/user");
 const RefreshToken = require("../models/refreshToken");
 
+// Login User
 exports.login_post = [
   body("email", "Email is required")
     .trim()
@@ -48,6 +49,7 @@ exports.login_post = [
   }),
 ];
 
+// Create User
 exports.signup_post = [
   body("first_name", "First Name is required")
     .trim()
@@ -87,7 +89,9 @@ exports.signup_post = [
     });
 
     if (!errors.isEmpty()) {
-      res.sendStatus(403);
+      const err = new Error(errors.Array());
+      err.status = 403;
+      next(err);
       return;
     } else {
       await user.save();
@@ -96,6 +100,7 @@ exports.signup_post = [
   }),
 ];
 
+// Get Token from Refresh
 exports.refresh_token_post = asyncHandler(async (req, res, next) => {
   passport.authenticate(
     "refreshJwt",
@@ -118,6 +123,7 @@ exports.refresh_token_post = asyncHandler(async (req, res, next) => {
   )(req, res, next);
 });
 
+// Logout User
 exports.logout_delete = asyncHandler(async (req, res, next) => {
   const refreshToken = req.headers.authorization.split(" ")[1];
 

@@ -38,8 +38,14 @@ router.get("/books", paginatedResults(Book), bookController.books_get);
 
 router.get("/books/:id", checkIdFormat(), bookController.book_get);
 
+router.post(
+  "/books",
+  passport.authenticate("jwt", { session: false }),
+  bookController.book_post
+);
+
 router.put(
-  "books/:id",
+  "/books/:id",
   checkIdFormat(),
   passport.authenticate("jwt", { session: false }),
   bookController.book_put
@@ -57,6 +63,12 @@ router.get("/reviews", paginatedResults(Review), reviewController.reviews_get);
 
 router.get("/reviews/:id", checkIdFormat(), reviewController.review_get);
 
+router.post(
+  "/reviews",
+  passport.authenticate("jwt", { session: false }),
+  reviewController.review_post
+);
+
 router.put(
   "/reviews/:id",
   checkIdFormat(),
@@ -65,7 +77,7 @@ router.put(
 );
 
 router.delete(
-  "/reviews/:reviewId",
+  "/reviews/:id",
   checkIdFormat(),
   passport.authenticate("jwt", { session: false }),
   reviewController.review_delete
@@ -82,6 +94,13 @@ router.get(
   "/reviews/:reviewId/comments/:commentId",
   checkIdFormat(),
   commentController.comment_get
+);
+
+router.post(
+  "/reviews/:id/comments",
+  checkIdFormat(),
+  passport.authenticate("jwt", { session: false }),
+  commentController.comment_post
 );
 
 router.put(
