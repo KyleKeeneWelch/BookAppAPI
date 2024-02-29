@@ -14,51 +14,44 @@ const limiter = RateLimit({
   max: 50,
 });
 const cors = require("cors");
-const passport = require("passport");
-const {
-  jwtStrategy,
-  refreshJwtStrategy,
-  localStrategy,
-} = require("./helpers/passport-config");
+const corsOptions = require("./config/corsOptions");
+const { credentials } = require("./helpers/middleware");
 
 const authRouter = require("./routes/auth");
 const apiRouter = require("./routes/api");
 const recommendationsRouter = require("./routes/recommendations");
 
+// Create App
 const app = express();
 
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
 const mongoDB = process.env.MONGO_URI;
 
+// Connect to data base
 main().catch((err) => console.log(err));
 async function main() {
   await mongoose.connect(mongoDB);
+  console.log("Connected to Database");
 }
 
-const corsOptions = {
-  origin: "*",
-  optionsSuccessStatus: 200,
-};
+// Handle options credentials check and fetch cookies credentials requirement
+app.use(credentials);
 
-app.options("*", cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(passport.initialize());
 app.use(cookieParser());
 app.use(compression());
 app.use(helmet());
 app.use(limiter);
 app.use(cors());
 
-passport.use("jwt", jwtStrategy);
-passport.use("refreshJwt", refreshJwtStrategy);
-passport.use("login", localStrategy);
-
-app.use("/auth", cors(corsOptions), authRouter);
-app.use("/recommendations", cors(corsOptions), recommendationsRouter);
-app.use("/", cors(corsOptions), apiRouter);
+// Assign routes
+app.use("/auth", authRouter);
+app.use("/recommendations", recommendationsRouter);
+app.use("/", apiRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

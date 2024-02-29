@@ -10,18 +10,15 @@ exports.comments_get = (req, res, next) => {
 // Get Comment
 exports.comment_get = asyncHandler(async (req, res, next) => {
   const comment = await Comment.findById(req.params.commentId)
-    .populate("user")
+    .populate("user", { password: 0, refreshToken: 0 })
     .populate("review")
     .exec();
 
   if (comment === null) {
-    const err = new Error(errors.Array());
-    err.status = 403;
-    next(err);
-    return;
+    return res.status(404).json({ message: "Comment not found" });
   }
 
-  res.json(comment);
+  res.status(200).json(comment);
 });
 
 // Create Comment
@@ -30,22 +27,20 @@ exports.comment_post = [
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
 
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.Array() });
+    }
+
     const comment = new Comment({
-      user: req.user.id,
+      user: req.user._id,
       review: req.params.id,
       body: req.body.body,
       createdAt: Date.now(),
     });
 
-    if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
-    } else {
-      await comment.save();
-      res.sendStatus(200);
-    }
+    // Create comment
+    await comment.save();
+    res.sendStatus(200);
   }),
 ];
 
@@ -55,45 +50,40 @@ exports.comment_put = [
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
 
+    // Check if comment exists
     const existingComment = await Comment.findById(req.params.commentId).exec();
 
     if (!existingComment) {
-      const err = new Error("Comment not found");
-      err.status = 404;
-      next(err);
-      return;
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.Array() });
     }
 
     const comment = new Comment({
-      user: req.user.id,
+      user: req.user._id,
       review: req.params.reviewId,
       body: req.body.body,
       _id: req.params.commentId,
     });
 
-    if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
-    } else {
-      await Comment.findByIdAndUpdate(req.params.commentId, comment, {});
-      res.sendStatus(200);
-    }
+    // Update comment
+    await Comment.findByIdAndUpdate(req.params.commentId, comment, {});
+    res.sendStatus(200);
   }),
 ];
 
 // Delete Comment
 exports.comment_delete = asyncHandler(async (req, res, next) => {
+  // Check if comment exists
   const existingComment = await Comment.findById(req.params.commentId).exec();
 
   if (!existingComment) {
-    const err = new Error("Comment not found");
-    err.status = 404;
-    next(err);
-    return;
+    return res.status(404).json({ message: "Comment not found" });
   }
 
+  // Delete comment
   await Comment.findByIdAndDelete(req.params.commentId).exec();
   res.sendStatus(200);
 });

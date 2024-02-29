@@ -1,12 +1,9 @@
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
 const { body, validationResult } = require("express-validator");
-const passport = require("passport");
 const bcrypt = require("bcrypt");
-const { v4: uuidv4 } = require("uuid");
 
 const User = require("../models/user");
-const RefreshToken = require("../models/refreshToken");
 
 // Login User
 exports.login_post = [
@@ -21,30 +18,53 @@ exports.login_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      res.sendStatus(403);
-      return;
+      return res.status(400).json({ message: errors.Array() });
+    }
+
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email: email }).exec();
+
+    if (!user) return res.sendStatus(401);
+
+    const match = await bcrypt.compare(password, user.password);
+
+    if (match) {
+      const userInfo = {
+        UserInfo: {
+          _id: user._id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          username: user.username,
+          email: user.email,
+        },
+      };
+
+      const accessToken = jwt.sign(userInfo, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "20s",
+      });
+      const refreshToken = jwt.sign(
+        userInfo,
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      // Saving refreshToken with current user
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      // Creates Secure Cookie with refresh token
+      res.cookie("jwt", refreshToken, {
+        httpOnly: true,
+        secure: true,
+        // sameSite: "none",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+
+      // Send access token to user
+      res.json({ accessToken });
     } else {
-      passport.authenticate("login", async (error, user, info) => {
-        if (error) {
-          return next(error);
-        }
-
-        if (!user) {
-          const err = new Error(info.message);
-          err.status = 404;
-          return next(err);
-        }
-
-        const accessToken = generateAccessToken(user);
-        const refreshToken = new RefreshToken({
-          token: generateRefreshAccessToken(user),
-        });
-        await refreshToken.save();
-        res.json({
-          accessToken: accessToken,
-          refreshToken: refreshToken.token,
-        });
-      })(req, res, next);
+      res.sendStatus(401);
     }
   }),
 ];
@@ -77,6 +97,17 @@ exports.signup_post = [
     .withMessage("Confirm Password needs to match Password"),
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
+
+    // Check for exisitng user email
+    const duplicate = await User.findOne({ email: req.body.email }).exec();
+
+    if (duplicate) return res.sendStatus(409); // Conflict
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.Array() });
+    }
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const user = new User({
@@ -88,74 +119,73 @@ exports.signup_post = [
       createdAt: Date.now(),
     });
 
-    if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
-    } else {
-      await user.save();
-      res.sendStatus(200);
-    }
+    // Save to db
+    await user.save();
+    res.sendStatus(200);
   }),
 ];
 
 // Get Token from Refresh
 exports.refresh_token_post = asyncHandler(async (req, res, next) => {
-  passport.authenticate(
-    "refreshJwt",
-    { session: false },
-    async (error, user, info) => {
-      if (error) {
-        return next(error);
-      }
+  // Get jwt from secure cookie
+  const cookies = req.cookies;
+  if (!cookies?.jwt) return res.sendStatus(401);
+  const refreshToken = cookies.jwt;
 
-      if (user === null) {
-        const err = new Error("Invalid Token");
-        err.status = 401;
-        return next(err);
-      }
-      const accessToken = generateAccessToken(user);
-      res.json({
-        accessToken: accessToken,
-      });
-    }
-  )(req, res, next);
+  const user = await User.findOne({ refreshToken }).exec();
+
+  if (!user) return res.sendStatus(403);
+
+  // evaluate jwt
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
+    if (err || user.email !== decoded.UserInfo.email)
+      return res.sendStatus(403);
+    const userInfo = {
+      UserInfo: {
+        _id: decoded.UserInfo._id,
+        first_name: decoded.UserInfo.first_name,
+        last_name: decoded.UserInfo.last_name,
+        username: decoded.UserInfo.username,
+        email: decoded.UserInfo.email,
+      },
+    };
+
+    // Create new access token
+    const accessToken = jwt.sign(userInfo, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: "20s",
+    });
+    // Send as response
+    res.json({ accessToken });
+  });
 });
 
 // Logout User
 exports.logout_delete = asyncHandler(async (req, res, next) => {
-  const refreshToken = req.headers.authorization.split(" ")[1];
+  const cookies = req.cookies;
+  if (!cookies?.jwt) return res.sendStatus(204); // No content
+  const refreshToken = cookies.jwt;
 
-  if (refreshToken === null) {
-    const err = new Error("Missing Refresh Token");
-    err.status = 400;
-    return next(err);
+  // Find user with refresh
+  const user = await User.findOne({ refreshToken }).exec();
+
+  if (!user) {
+    // Clear jwt cookie
+    res.clearCookie("jwt", {
+      httpOnly: true,
+      // sameSite: "None",
+      secure: true,
+    });
+    return res.sendStatus(204);
   }
 
-  const result = await RefreshToken.findOneAndDelete({ token: refreshToken });
+  // Clear refresh and cookie
+  user.refreshToken = "";
+  await user.save();
 
-  if (!result) {
-    const err = new Error("Refresh Token does not exist");
-    err.status = 500;
-    return next(err);
-  }
-
-  res.sendStatus(200);
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    // sameSite: "None",
+    secure: true,
+  });
+  return res.sendStatus(204);
 });
-
-function generateAccessToken(user) {
-  const data = {
-    data: user,
-    jwtid: uuidv4(),
-  };
-  return jwt.sign(data, process.env.TOKEN_SECRET, { expiresIn: "10m" });
-}
-
-function generateRefreshAccessToken(user) {
-  const data = {
-    data: user,
-    jwtid: uuidv4(),
-  };
-  return jwt.sign(data, process.env.REFRESH_TOKEN_SECRET);
-}

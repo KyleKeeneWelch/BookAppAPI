@@ -1,14 +1,15 @@
 const express = require("express");
-const passport = require("passport");
-const { checkIdFormat } = require("../helpers/middleware");
+const { checkIdFormat, verifyJWT } = require("../helpers/middleware");
 const recommendationController = require("../controllers/recommendationController");
 const router = express.Router();
+
+// Forward to Write Model or get current recommendation state
 
 // Get Recommendation
 router.get(
   "/users/:id/book-recommendation",
   checkIdFormat(),
-  passport.authenticate("jwt", { session: false }),
+  verifyJWT(),
   recommendationController.recommendation_get
 );
 
@@ -16,7 +17,7 @@ router.get(
 router.post(
   "/users/:id/book-recommendation",
   checkIdFormat(),
-  passport.authenticate("jwt", { session: false }),
+  verifyJWT(),
   recommendationController.recommendation_post
 );
 
@@ -24,7 +25,7 @@ router.post(
 router.post(
   "/users/:id/book-recommendation/view-book",
   checkIdFormat(),
-  passport.authenticate("jwt", { session: false }),
+  verifyJWT(),
   recommendationController.recommendation_book_view_post
 );
 
@@ -32,7 +33,7 @@ router.post(
 router.post(
   "/users/:id/book-recommendation/rate-book",
   checkIdFormat(),
-  passport.authenticate("jwt", { session: false }),
+  verifyJWT(),
   recommendationController.recommendation_book_rate_post
 );
 
@@ -40,7 +41,7 @@ router.post(
 router.post(
   "/users/:id/book-recommendation/like-book",
   checkIdFormat(),
-  passport.authenticate("jwt", { session: false }),
+  verifyJWT(),
   recommendationController.recommendation_book_like_post
 );
 
@@ -48,8 +49,34 @@ router.post(
 router.post(
   "/users/:id/book-recommendation/unlike-book",
   checkIdFormat(),
-  passport.authenticate("jwt", { session: false }),
+  verifyJWT(),
   recommendationController.recommendation_book_unlike_post
+);
+
+// Obtain books from recommendation
+
+// Get recommended books based on views
+router.get(
+  "/users/:id/book-recommendation/views",
+  checkIdFormat(),
+  verifyJWT(),
+  recommendationController.recommendation_views_get
+);
+
+// Get recommended books based on likes
+router.get(
+  "/users/:id/book-recommendation/likes",
+  checkIdFormat(),
+  verifyJWT(),
+  recommendationController.recommendation_likes_get
+);
+
+// Get recommended books based on ratings
+router.get(
+  "/users/:id/book-recommendation/ratings",
+  checkIdFormat(),
+  verifyJWT(),
+  recommendationController.recommendation_ratings_get
 );
 
 module.exports = router;

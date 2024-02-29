@@ -12,9 +12,7 @@ exports.book_get = asyncHandler(async (req, res, next) => {
   const book = await Book.findById(req.params.id).exec();
 
   if (book === null) {
-    const err = new Error("No Book Found");
-    err.status = 404;
-    return next(err);
+    return res.status(404).json({ message: "Book not found" });
   }
 
   res.json(book);
@@ -23,6 +21,7 @@ exports.book_get = asyncHandler(async (req, res, next) => {
 // Create Book
 exports.book_post = [
   (req, res, next) => {
+    // Set as array if not array
     if (!Array.isArray(req.body.authors)) {
       req.body.authors =
         typeof req.body.authors === "undefined" ? [] : [req.body.authors];
@@ -49,8 +48,8 @@ exports.book_post = [
     .isURL()
     .optional({ values: "falsy" }),
   body("description", "Description is required")
+    .optional({ values: "falsy" })
     .trim()
-    .isLength({ min: 1 })
     .escape(),
   body("publishedYear", "Published Year is required")
     .trim()
@@ -63,6 +62,10 @@ exports.book_post = [
   body("numPages").trim().isLength({ min: 1 }).escape(),
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.Array() });
+    }
 
     const book = new Book({
       isbn: req.body.isbn,
@@ -78,15 +81,9 @@ exports.book_post = [
       createdAt: Date.now(),
     });
 
-    if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
-    } else {
-      await book.save();
-      res.sendStatus(200);
-    }
+    // Create new book
+    await book.save();
+    res.sendStatus(200);
   }),
 ];
 
@@ -134,13 +131,15 @@ exports.book_put = [
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
 
+    // Check if book exists
     const existingBook = await Book.findById(req.params.id).exec();
 
     if (!existingBook) {
-      const err = new Error("Book not found");
-      err.status = 404;
-      next(err);
-      return;
+      return res.status(404).json("Book not found");
+    }
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.Array() });
     }
 
     const book = new Book({
@@ -157,29 +156,22 @@ exports.book_put = [
       _id: req.params.id,
     });
 
-    if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
-    } else {
-      await Book.findByIdAndUpdate(req.params.id, book, {}).exec();
-      res.sendStatus(200);
-    }
+    // Update book
+    await Book.findByIdAndUpdate(req.params.id, book, {}).exec();
+    res.sendStatus(200);
   }),
 ];
 
 // Delete Book
 exports.book_delete = asyncHandler(async (req, res, next) => {
+  // Check if book exists
   const existingBook = await Book.findById(req.params.id).exec();
 
   if (!existingBook) {
-    const err = new Error("Book not found");
-    err.status = 404;
-    next(err);
-    return;
+    return res.status(404).json("Book not found");
   }
 
+  // Delete book
   await Book.findByIdAndDelete(req.params.id).exec();
   res.sendStatus(200);
 });

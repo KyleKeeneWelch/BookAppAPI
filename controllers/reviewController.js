@@ -11,15 +11,12 @@ exports.reviews_get = (req, res, next) => {
 // Get Review
 exports.review_get = asyncHandler(async (req, res, next) => {
   const review = await Review.findById(req.params.id)
-    .populate("user", { password: 0 })
+    .populate("user", { password: 0, refreshToken: 0 })
     .populate("book")
     .exec();
 
   if (review === null) {
-    const err = new Error(errors.Array());
-    err.status = 403;
-    next(err);
-    return;
+    return res.status(404).json({ message: "Review not found" });
   }
 
   res.json(review);
@@ -34,8 +31,12 @@ exports.review_post = [
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
 
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.Array() });
+    }
+
     const review = new Review({
-      user: req.user.id,
+      user: req.user._id,
       book: req.body.book,
       title: req.body.title,
       body: req.body.body,
@@ -43,15 +44,9 @@ exports.review_post = [
       createdAt: Date.now(),
     });
 
-    if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
-    } else {
-      await review.save();
-      res.sendStatus(200);
-    }
+    // Create review
+    await review.save();
+    res.sendStatus(200);
   }),
 ];
 
@@ -64,17 +59,19 @@ exports.review_put = [
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
 
+    // Check review exists
     const existingReview = await Review.findById(req.params.id).exec();
 
     if (!existingReview) {
-      const err = new Error("Review not found");
-      err.status = 404;
-      next(err);
-      return;
+      return res.status(404).json({ message: "Review not found" });
+    }
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.Array() });
     }
 
     const review = new Review({
-      user: req.user.id,
+      user: req.user._id,
       book: req.body.book,
       title: req.body.title,
       body: req.body.body,
@@ -82,31 +79,25 @@ exports.review_put = [
       _id: req.params.id,
     });
 
-    if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
-    } else {
-      await Review.findByIdAndUpdate(req.params.id, review, {});
-      res.sendStatus(200);
-    }
+    // Update review
+    await Review.findByIdAndUpdate(req.params.id, review, {});
+    res.sendStatus(200);
   }),
 ];
 
 // Delete Review
 exports.review_delete = asyncHandler(async (req, res, next) => {
+  // Check if review exists
   const existingReview = await Review.findById(req.params.id).exec();
 
   if (!existingReview) {
-    const err = new Error("Review not found");
-    err.status = 404;
-    next(err);
-    return;
+    return res.status(404).json({ message: "Review not found" });
   }
 
+  // Delete comments
   await Comment.deleteMany({ review: req.params.id }).exec();
 
+  // Delete review
   await Review.findByIdAndDelete(req.params.id).exec();
   res.sendStatus(200);
 });

@@ -18,6 +18,7 @@ const userSchema = new Schema({
     },
   },
   password: { type: String, required: true, maxLength: 100 },
+  refreshToken: String,
   createdAt: { type: Date, imumutable: true },
   updatedAt: { type: Date, default: () => Date.now() },
 });

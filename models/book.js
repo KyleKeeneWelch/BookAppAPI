@@ -9,7 +9,7 @@ const bookSchema = new Schema({
   authors: { type: Array, required: true },
   categories: { type: Array, required: true },
   thumbnail: { type: String, maxLength: 200 },
-  description: { type: String, required: true, maxLength: 500 },
+  description: { type: String, maxLength: 2000 },
   publishedYear: { type: Number, required: true, maxLength: 4 },
   averageRating: { type: Number, required: true, maxLength: 5 },
   numPages: { type: Number, required: true, maxLength: 10 },

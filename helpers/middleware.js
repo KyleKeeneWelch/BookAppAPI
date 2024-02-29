@@ -1,4 +1,21 @@
 const ObjectId = require("mongoose").Types.ObjectId;
+const jwt = require("jsonwebtoken");
+const allowedOrigins = require("../config/allowedOrigins");
+
+// Authenticate using JSONWebToken
+exports.verifyJWT = () => {
+  return (req, res, next) => {
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if (authHeader?.split(" ")[0].toLowerCase() != "bearer")
+      return res.sendStatus(401);
+    const token = authHeader.split(" ")[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      if (err) return res.sendStatus(403); //invalid token
+      req.user = decoded.UserInfo;
+      next();
+    });
+  };
+};
 
 // Mechanism for providing paginated results for api entities
 exports.paginatedResults = (model) => {
@@ -56,14 +73,14 @@ exports.paginatedResults = (model) => {
           .find()
           .limit(limit)
           .skip(startIndex)
-          .populate("user")
+          .populate("user", { password: 0, refreshToken: 0 })
           .exec();
         res.paginatedResults = results;
         next();
       } else if (model.collection.collectionName == "users") {
         results.results = await model
           .find()
-          .select({ password: 0 })
+          .select({ password: 0, refreshToken: 0 })
           .limit(limit)
           .skip(startIndex)
           .exec();
@@ -71,11 +88,11 @@ exports.paginatedResults = (model) => {
         next();
       } else if (model.collection.collectionName == "comments") {
         results.results = await model
-          .find()
+          .find({ review: req.params.id })
           .select({ password: 0 })
           .limit(limit)
           .skip(startIndex)
-          .populate("user")
+          .populate("user", { password: 0, refreshToken: 0 })
           .populate("review")
           .exec();
         res.paginatedResults = results;
@@ -110,4 +127,13 @@ exports.checkIdFormat = () => {
     err.message = "Invalid ID";
     return next(err);
   };
+};
+
+// Sets up config for cookies
+exports.credentials = (req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Credentials", true);
+  }
+  next();
 };

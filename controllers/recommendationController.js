@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const { body, validationResult } = require("express-validator");
 const fetch = require("node-fetch");
 const Recommendation = require("../models/recommendation");
+const Book = require("../models/book");
 
 const WeakETagRegex = /W\/"(\d+.*)"/;
 
@@ -26,6 +27,8 @@ const categoryMode = (arr) => {
     .pop();
 };
 
+// Forward to Write Model or get current recommendation state
+
 // Get recommendation
 exports.recommendation_get = asyncHandler(async (req, res, next) => {
   const recommendation = await Recommendation.findOne({
@@ -33,11 +36,10 @@ exports.recommendation_get = asyncHandler(async (req, res, next) => {
   }).exec();
 
   if (!recommendation) {
-    const err = new Error("Recommendation Not Found");
-    err.status = 404;
-    return next(err);
+    return res.status(404).json({ message: "Recommendation not found" });
   }
 
+  // Obtain current recommendation state
   const response = await fetch(
     `http://localhost:5000/users/${req.params.id}/book-recommendation/${recommendation.recommendationId}`,
     {
@@ -51,9 +53,7 @@ exports.recommendation_get = asyncHandler(async (req, res, next) => {
   const data = await response.json();
 
   if (!data) {
-    const err = new Error("Invalid Response");
-    err.status = 500;
-    return next(err);
+    return res.status(502).json({ message: "Invalid Response" });
   }
 
   const viewRecommendations = [];
@@ -119,12 +119,13 @@ exports.recommendation_get = asyncHandler(async (req, res, next) => {
 
 // Create Recommendation
 exports.recommendation_post = asyncHandler(async (req, res, next) => {
+  // POST to create a new recommendation with user id
   const response = await fetch(
     `http://localhost:5000/users/${req.params.id}/book-recommendation/`,
     {
       method: "post",
       headers: {
-        Authorization: req.headers["authorization"],
+        Authorization: `bearer ${req.headers["authorization"].split(" ")[1]}`,
       },
     }
   );
@@ -132,9 +133,7 @@ exports.recommendation_post = asyncHandler(async (req, res, next) => {
   const data = await response.json();
 
   if (!data) {
-    const err = new Error("Invalid Response");
-    err.status = 500;
-    return next(err);
+    return res.status(502).json({ message: "Invalid Response" });
   }
 
   // Get Etag value.
@@ -142,7 +141,7 @@ exports.recommendation_post = asyncHandler(async (req, res, next) => {
 
   // Update revision with Etag value.
   const recommendation = new Recommendation({
-    user: req.user.id,
+    user: req.user._id,
     recommendationId: data.id,
     viewRecommendations: [],
     likeRecommendations: [],
@@ -162,22 +161,19 @@ exports.recommendation_book_view_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
+      return res.status(400).json({ message: errors.Array() });
     }
 
+    // Check recommendation exists
     const recommendation = await Recommendation.findOne({
       user: req.params.id,
     }).exec();
 
     if (!recommendation) {
-      const err = new Error("Recommendation Not Found");
-      err.status = 404;
-      return next(err);
+      return res.status(404).json({ message: "Recommendation not found" });
     }
 
+    // POST to view book endpoint with book in req body
     const response = await fetch(
       `http://localhost:5000/users/${req.params.id}/book-recommendation/${recommendation.recommendationId}/view-book`,
       {
@@ -185,7 +181,7 @@ exports.recommendation_book_view_post = [
         body: JSON.stringify(req.body),
         headers: {
           "Content-Type": "application/json",
-          Authorization: req.headers["authorization"],
+          Authorization: `bearer ${req.headers["authorization"].split(" ")[1]}`,
           "If-Match": `W/"${recommendation.revision}"`,
         },
       }
@@ -214,9 +210,7 @@ exports.recommendation_book_view_post = [
 
       res.sendStatus(200);
     } else {
-      const err = new Error("Invalid Response");
-      err.status = 500;
-      return next(err);
+      return res.status(502).json({ message: "Invalid Response" });
     }
   }),
 ];
@@ -232,22 +226,19 @@ exports.recommendation_book_rate_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
+      return res.status(400).json({ message: errors.Array() });
     }
 
+    // Check if recommendation exists
     const recommendation = await Recommendation.findOne({
       user: req.params.id,
     }).exec();
 
     if (!recommendation) {
-      const err = new Error("Recommendation Not Found");
-      err.status = 404;
-      return next(err);
+      return res.status(404).json({ message: "Recommendation not found" });
     }
 
+    // POST to rate book endpoint with book in req book
     const response = await fetch(
       `http://localhost:5000/users/${req.params.id}/book-recommendation/${recommendation.recommendationId}/rate-book`,
       {
@@ -255,7 +246,7 @@ exports.recommendation_book_rate_post = [
         body: JSON.stringify(req.body),
         headers: {
           "Content-Type": "application/json",
-          Authorization: req.headers["authorization"],
+          Authorization: `bearer ${req.headers["authorization"].split(" ")[1]}`,
           "If-Match": `W/"${recommendation.revision}"`,
         },
       }
@@ -284,9 +275,7 @@ exports.recommendation_book_rate_post = [
 
       res.sendStatus(200);
     } else {
-      const err = new Error("Invalid Response");
-      err.status = 500;
-      return next(err);
+      return res.status(502).json({ message: "Invalid Response" });
     }
   }),
 ];
@@ -298,22 +287,19 @@ exports.recommendation_book_like_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
+      return res.status(400).json({ message: errors.Array() });
     }
 
+    // Check if recommendation exists
     const recommendation = await Recommendation.findOne({
       user: req.params.id,
     }).exec();
 
     if (!recommendation) {
-      const err = new Error("Recommendation Not Found");
-      err.status = 404;
-      return next(err);
+      return res.status(404).json({ message: "Recommendation not found" });
     }
 
+    // POST to like book endpoint with book in req body
     const response = await fetch(
       `http://localhost:5000/users/${req.params.id}/book-recommendation/${recommendation.recommendationId}/like-book`,
       {
@@ -321,7 +307,7 @@ exports.recommendation_book_like_post = [
         body: JSON.stringify(req.body),
         headers: {
           "Content-Type": "application/json",
-          Authorization: req.headers["authorization"],
+          Authorization: `bearer ${req.headers["authorization"].split(" ")[1]}`,
           "If-Match": `W/"${recommendation.revision}"`,
         },
       }
@@ -350,9 +336,7 @@ exports.recommendation_book_like_post = [
 
       res.sendStatus(200);
     } else {
-      const err = new Error("Invalid Response");
-      err.status = 500;
-      return next(err);
+      return res.status(502).json({ message: "Invalid Response" });
     }
   }),
 ];
@@ -364,22 +348,19 @@ exports.recommendation_book_unlike_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
+      return res.status(400).json({ message: errors.Array() });
     }
 
+    // Check if recommendation exists
     const recommendation = await Recommendation.findOne({
       user: req.params.id,
     }).exec();
 
     if (!recommendation) {
-      const err = new Error("Recommendation Not Found");
-      err.status = 404;
-      return next(err);
+      return res.status(404).json({ message: "Recommendation not found" });
     }
 
+    // POST to unlike book endpoint with book in req body
     const response = await fetch(
       `http://localhost:5000/users/${req.params.id}/book-recommendation/${recommendation.recommendationId}/unlike-book`,
       {
@@ -387,7 +368,7 @@ exports.recommendation_book_unlike_post = [
         body: JSON.stringify(req.body),
         headers: {
           "Content-Type": "application/json",
-          Authorization: req.headers["authorization"],
+          Authorization: `bearer ${req.headers["authorization"].split(" ")[1]}`,
           "If-Match": `W/"${recommendation.revision}"`,
         },
       }
@@ -416,9 +397,101 @@ exports.recommendation_book_unlike_post = [
 
       res.sendStatus(200);
     } else {
-      const err = new Error("Invalid Response");
-      err.status = 500;
-      return next(err);
+      return res.status(502).json({ message: "Invalid Response" });
     }
   }),
 ];
+
+// Obtain books from recommendation
+
+// Get recommended books based on views
+exports.recommendation_views_get = asyncHandler(async (req, res, next) => {
+  // Check recommendation exists
+  const recommendation = await Recommendation.findOne({
+    user: req.params.id,
+  }).exec();
+
+  if (!recommendation) {
+    return res.status(404).json({ message: "Recommendation not found" });
+  }
+
+  if (recommendation.viewRecommendations.length == 0) {
+    return res.status(200).json({ books: {} });
+  }
+
+  // Obtain books based on recommendation
+  const books = await Book.find({
+    categories: { $in: recommendation.viewRecommendations },
+  })
+    .limit(10)
+    .exec();
+
+  if (books.length == 0) {
+    return res
+      .status(404)
+      .json({ message: "Could not find books matching your profile" });
+  }
+
+  res.status(200).json({ books });
+});
+
+// Get recommended books based on likes
+exports.recommendation_likes_get = asyncHandler(async (req, res, next) => {
+  // Check recommendation exists
+  const recommendation = await Recommendation.findOne({
+    user: req.params.id,
+  }).exec();
+
+  if (!recommendation) {
+    return res.status(404).json({ message: "Recommendation not found" });
+  }
+
+  if (recommendation.likeRecommendations.length == 0) {
+    return res.status(200).json({ books: {} });
+  }
+
+  // Obtain books based on recommendation
+  const books = await Book.find({
+    categories: { $in: recommendation.likeRecommendations },
+  })
+    .limit(10)
+    .exec();
+  if (books.length == 0) {
+    return res
+      .status(404)
+      .json({ message: "Could not find books matching your profile" });
+  }
+
+  res.status(200).json({ books });
+});
+
+// Get recommended books based on ratings
+exports.recommendation_ratings_get = asyncHandler(async (req, res, next) => {
+  // Check recommendation exists
+  const recommendation = await Recommendation.findOne({
+    user: req.params.id,
+  }).exec();
+
+  if (!recommendation) {
+    return res.status(404).json({ message: "Recommendation not found" });
+  }
+
+  if (recommendation.ratingRecommendations.length == 0) {
+    return res.status(200).json({ books: {} });
+  }
+
+  // Obtain books based on recommendation
+  const books = await Book.find({
+    categories: { $in: recommendation.ratingRecommendations },
+  })
+    .limit(10)
+    .exec();
+
+  if (books.length == 0) {
+    return res
+      .status(404)
+      .json({ message: "Could not find books matching your profile" });
+  }
+
+  res.status(200).json({ books });
+});

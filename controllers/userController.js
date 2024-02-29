@@ -11,13 +11,11 @@ exports.users_get = (req, res, next) => {
 // Get User
 exports.user_get = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id)
-    .select({ password: 0 })
+    .select({ password: 0, refreshToken: 0 })
     .exec();
 
   if (user === null) {
-    const err = new Error("No User Found");
-    err.status = 404;
-    return next(err);
+    return res.status(404).json({ message: "User not found" });
   }
 
   res.json(user);
@@ -54,16 +52,20 @@ exports.user_put = [
     .withMessage("Confirm Password needs to match Password"),
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
+    // Check if user exists
     const existingUser = User.findById(req.params.id).exec();
 
     if (!existingUser) {
-      const err = new Error("User not found");
-      err.status = 404;
-      next(err);
-      return;
+      return res.status(404).json({ message: "User not found" });
     }
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.Array() });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
     const user = new User({
       first_name: req.body.first_name,
@@ -74,28 +76,29 @@ exports.user_put = [
       _id: req.params.id,
     });
 
-    if (!errors.isEmpty()) {
-      const err = new Error(errors.Array());
-      err.status = 403;
-      next(err);
-      return;
-    } else {
-      await User.findByIdAndUpdate(req.params.id, user, {});
-      res.sendStatus(200);
-    }
+    // Update user
+    await User.findByIdAndUpdate(req.params.id, user, {});
+    res.sendStatus(200);
   }),
 ];
 
 // Delete User
 exports.user_delete = asyncHandler(async (req, res, next) => {
+  // Check if user exists
   const user = await User.findById(req.params.id).exec();
 
   if (user === null) {
-    const err = new Error("User Not Found");
-    err.status = 404;
-    return next(err);
+    return res.status(404).json({ message: "User not found" });
   }
 
+  // Clear jwt cookie
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    // sameSite: "None",
+    secure: true,
+  });
+
+  // Delete user
   await User.findByIdAndDelete(req.params.id);
   res.sendStatus(200);
 });
