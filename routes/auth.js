@@ -10,7 +10,7 @@ router.post("/login", authController.login_post);
 router.post("/signup", authController.signup_post);
 
 // Get new Token
-router.post("/token", authController.refresh_token_post);
+router.get("/refresh", authController.refresh_token_get);
 
 //Logout
 router.delete("/logout", authController.logout_delete);

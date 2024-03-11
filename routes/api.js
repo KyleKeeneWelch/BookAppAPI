@@ -3,6 +3,7 @@ const {
   paginatedResults,
   checkIdFormat,
   verifyJWT,
+  checkEmailFormat,
 } = require("../helpers/middleware");
 const User = require("../models/user");
 const Book = require("../models/book");
@@ -12,14 +13,70 @@ const userController = require("../controllers/userController");
 const bookController = require("../controllers/bookController");
 const commentController = require("../controllers/commentController");
 const reviewController = require("../controllers/reviewController");
+const likeController = require("../controllers/likeController");
+const unlikeController = require("../controllers/unlikeController");
 
 const router = express.Router();
+
+// Like
+router.get(
+  "/likes/:email/:id",
+  checkEmailFormat(),
+  checkIdFormat(),
+  likeController.likes_get
+);
+
+router.post(
+  "/likes/:email/:id",
+  checkEmailFormat(),
+  checkIdFormat(),
+  verifyJWT(),
+  likeController.likes_post
+);
+
+router.delete(
+  "/likes/:email/:id",
+  checkEmailFormat(),
+  checkIdFormat(),
+  verifyJWT(),
+  likeController.likes_delete
+);
+
+// Unlike
+router.get(
+  "/unlikes/:email/:id",
+  checkEmailFormat(),
+  checkIdFormat(),
+  unlikeController.unlikes_get
+);
+
+router.post(
+  "/unlikes/:email/:id",
+  checkEmailFormat(),
+  checkIdFormat(),
+  verifyJWT(),
+  unlikeController.unlikes_post
+);
+
+router.delete(
+  "/unlikes/:email/:id",
+  checkEmailFormat(),
+  checkIdFormat(),
+  verifyJWT(),
+  unlikeController.unlikes_delete
+);
 
 // User
 
 router.get("/users", paginatedResults(User), userController.users_get);
 
-router.get("/users/:id", checkIdFormat(), userController.user_get);
+router.get(
+  "/users/email/:email",
+  checkEmailFormat(),
+  userController.user_email_get
+);
+
+router.get("/users/:id", checkIdFormat(), userController.user_id_get);
 
 router.put("/users/:id", checkIdFormat(), verifyJWT(), userController.user_put);
 

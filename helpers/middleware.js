@@ -22,6 +22,8 @@ exports.paginatedResults = (model) => {
   return async (req, res, next) => {
     const page = parseInt(req.query.page);
     const limit = parseInt(req.query.limit);
+    const bookSearch = req.query.search;
+    const bookId = req.query.bookId;
 
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
@@ -61,21 +63,45 @@ exports.paginatedResults = (model) => {
     // Check the paginated model and populate associated fields before sending response.
     try {
       if (model.collection.collectionName == "books") {
-        results.results = await model
-          .find()
-          .limit(limit)
-          .skip(startIndex)
-          .exec();
-        res.paginatedResults = results;
+        if (bookSearch != "undefined") {
+          results.results = await model
+            .find({
+              $or: [
+                { title: { $regex: bookSearch, $options: "i" } },
+                { categories: { $regex: bookSearch, $options: "i" } },
+              ],
+            })
+            .limit(limit)
+            .skip(startIndex)
+            .exec();
+          res.paginatedResults = results;
+        } else {
+          results.results = await model
+            .find()
+            .limit(limit)
+            .skip(startIndex)
+            .exec();
+          res.paginatedResults = results;
+        }
         next();
       } else if (model.collection.collectionName == "reviews") {
-        results.results = await model
-          .find()
-          .limit(limit)
-          .skip(startIndex)
-          .populate("user", { password: 0, refreshToken: 0 })
-          .exec();
-        res.paginatedResults = results;
+        if (bookId != "undefined") {
+          results.results = await model
+            .find({ book: bookId })
+            .limit(limit)
+            .skip(startIndex)
+            .populate("user", { password: 0, refreshToken: 0 })
+            .exec();
+          res.paginatedResults = results;
+        } else {
+          results.results = await model
+            .find()
+            .limit(limit)
+            .skip(startIndex)
+            .populate("user", { password: 0, refreshToken: 0 })
+            .exec();
+          res.paginatedResults = results;
+        }
         next();
       } else if (model.collection.collectionName == "users") {
         results.results = await model
@@ -122,10 +148,20 @@ exports.checkIdFormat = () => {
       return next();
     }
 
-    const err = new Error("Invalid ID");
-    err.status = 400;
-    err.message = "Invalid ID";
-    return next(err);
+    return res.status(400).json({ message: "Bad ID Format" });
+  };
+};
+
+exports.checkEmailFormat = () => {
+  return (req, res, next) => {
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const result = EMAIL_REGEX.test(req.params.email);
+
+    if (result) {
+      return next();
+    }
+
+    return res.status(400).json({ message: "Bad Email Format" });
   };
 };
 
@@ -133,7 +169,14 @@ exports.checkIdFormat = () => {
 exports.credentials = (req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Credentials", true);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Max-Age", "1800");
+    res.setHeader("Access-Control-Allow-Headers", "content-type");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "PUT, POST, GET, DELETE, PATCH, OPTIONS"
+    );
   }
   next();
 };

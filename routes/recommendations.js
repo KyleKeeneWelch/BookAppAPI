@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Get Recommendation
 router.get(
-  "/users/:id/book-recommendation",
+  "/users/:id",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_get
@@ -15,7 +15,7 @@ router.get(
 
 // Create Recommendation
 router.post(
-  "/users/:id/book-recommendation",
+  "/users/:id",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_post
@@ -23,7 +23,7 @@ router.post(
 
 // Add View Book
 router.post(
-  "/users/:id/book-recommendation/view-book",
+  "/users/:id/view-book",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_book_view_post
@@ -31,7 +31,7 @@ router.post(
 
 // Add Rate Book
 router.post(
-  "/users/:id/book-recommendation/rate-book",
+  "/users/:id/rate-book",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_book_rate_post
@@ -39,7 +39,7 @@ router.post(
 
 // Add Like Book
 router.post(
-  "/users/:id/book-recommendation/like-book",
+  "/users/:id/like-book",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_book_like_post
@@ -47,7 +47,7 @@ router.post(
 
 // Unlike Book
 router.post(
-  "/users/:id/book-recommendation/unlike-book",
+  "/users/:id/unlike-book",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_book_unlike_post
@@ -57,7 +57,7 @@ router.post(
 
 // Get recommended books based on views
 router.get(
-  "/users/:id/book-recommendation/views",
+  "/users/:id/views",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_views_get
@@ -65,7 +65,7 @@ router.get(
 
 // Get recommended books based on likes
 router.get(
-  "/users/:id/book-recommendation/likes",
+  "/users/:id/likes",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_likes_get
@@ -73,7 +73,7 @@ router.get(
 
 // Get recommended books based on ratings
 router.get(
-  "/users/:id/book-recommendation/ratings",
+  "/users/:id/ratings",
   checkIdFormat(),
   verifyJWT(),
   recommendationController.recommendation_ratings_get

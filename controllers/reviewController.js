@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const { body, validationResult } = require("express-validator");
 const Review = require("../models/review");
+const Book = require("../models/book");
 const Comment = require("../models/comment");
 
 // Get Reviews
@@ -32,12 +33,20 @@ exports.review_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
+    }
+
+    const existingBook = await Book.findOne({
+      title: { $regex: req.body.book, $options: "i" },
+    }).exec();
+
+    if (!existingBook) {
+      return res.status(404).json({ message: "Book does not exist" });
     }
 
     const review = new Review({
       user: req.user._id,
-      book: req.body.book,
+      book: existingBook._id,
       title: req.body.title,
       body: req.body.body,
       rating: req.body.rating,
@@ -46,7 +55,7 @@ exports.review_post = [
 
     // Create review
     await review.save();
-    res.sendStatus(200);
+    res.status(200).json({ id: review._id });
   }),
 ];
 
@@ -67,7 +76,7 @@ exports.review_put = [
     }
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     const review = new Review({

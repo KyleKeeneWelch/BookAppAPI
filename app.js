@@ -46,7 +46,6 @@ app.use(cookieParser());
 app.use(compression());
 app.use(helmet());
 app.use(limiter);
-app.use(cors());
 
 // Assign routes
 app.use("/auth", authRouter);

@@ -64,7 +64,7 @@ exports.book_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     const book = new Book({
@@ -139,7 +139,7 @@ exports.book_put = [
     }
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     const book = new Book({

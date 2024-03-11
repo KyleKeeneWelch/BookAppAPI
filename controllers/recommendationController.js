@@ -161,7 +161,7 @@ exports.recommendation_book_view_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     // Check recommendation exists
@@ -226,7 +226,7 @@ exports.recommendation_book_rate_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     // Check if recommendation exists
@@ -287,7 +287,7 @@ exports.recommendation_book_like_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     // Check if recommendation exists
@@ -348,7 +348,7 @@ exports.recommendation_book_unlike_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     // Check if recommendation exists

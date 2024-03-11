@@ -9,8 +9,21 @@ exports.users_get = (req, res, next) => {
 };
 
 // Get User
-exports.user_get = asyncHandler(async (req, res, next) => {
+exports.user_id_get = asyncHandler(async (req, res, next) => {
   const user = await User.findById(req.params.id)
+    .select({ password: 0, refreshToken: 0 })
+    .exec();
+
+  if (user === null) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  res.json(user);
+});
+
+// Get User (by email)
+exports.user_email_get = asyncHandler(async (req, res, next) => {
+  const user = await User.findOne({ email: req.params.email })
     .select({ password: 0, refreshToken: 0 })
     .exec();
 
@@ -54,14 +67,21 @@ exports.user_put = [
     const errors = validationResult(req);
 
     // Check if user exists
-    const existingUser = User.findById(req.params.id).exec();
+    const existingUser = await User.findById(req.params.id).exec();
 
     if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    if (req.body.email !== existingUser.email) {
+      // Check for exisitng user email
+      const duplicate = await User.findOne({ email: req.body.email }).exec();
+
+      if (duplicate) return res.sendStatus(409); // Conflict
+    }
+
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     // Hash password

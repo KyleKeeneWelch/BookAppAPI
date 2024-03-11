@@ -18,13 +18,12 @@ exports.login_post = [
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     const { email, password } = req.body;
 
     const user = await User.findOne({ email: email }).exec();
-
     if (!user) return res.sendStatus(401);
 
     const match = await bcrypt.compare(password, user.password);
@@ -104,7 +103,7 @@ exports.signup_post = [
     if (duplicate) return res.sendStatus(409); // Conflict
 
     if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.Array() });
+      return res.status(400).json({ message: "Validation Error" });
     }
 
     // Hash password
@@ -126,7 +125,7 @@ exports.signup_post = [
 ];
 
 // Get Token from Refresh
-exports.refresh_token_post = asyncHandler(async (req, res, next) => {
+exports.refresh_token_get = asyncHandler(async (req, res, next) => {
   // Get jwt from secure cookie
   const cookies = req.cookies;
   if (!cookies?.jwt) return res.sendStatus(401);
@@ -155,7 +154,7 @@ exports.refresh_token_post = asyncHandler(async (req, res, next) => {
       expiresIn: "20s",
     });
     // Send as response
-    res.json({ accessToken });
+    res.json({ email: user.email, accessToken });
   });
 });
 
