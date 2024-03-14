@@ -120,7 +120,7 @@ exports.signup_post = [
 
     // Save to db
     await user.save();
-    res.sendStatus(200);
+    res.status(200).json({ id: user._id });
   }),
 ];
 

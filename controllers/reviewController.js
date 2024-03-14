@@ -27,7 +27,7 @@ exports.review_get = asyncHandler(async (req, res, next) => {
 exports.review_post = [
   body("book", "Book is required").trim().isLength({ min: 1 }).escape(),
   body("title", "Title is required").trim().isLength({ min: 1 }).escape(),
-  body("body", "Body is required").trim().isLength({ min: 1 }).escape(),
+  body("body", "Body is required").isLength({ min: 1 }).escape(),
   body("rating", "Rating is required").trim().isLength({ min: 1 }).escape(),
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);
@@ -63,7 +63,7 @@ exports.review_post = [
 exports.review_put = [
   body("book", "Book is required").trim().isLength({ min: 1 }).escape(),
   body("title", "Title is required").trim().isLength({ min: 1 }).escape(),
-  body("body", "Body is required").trim().isLength({ min: 1 }).escape(),
+  body("body", "Body is required").isLength({ min: 1 }).escape(),
   body("rating", "Rating is required").trim().isLength({ min: 1 }).escape(),
   asyncHandler(async (req, res) => {
     const errors = validationResult(req);

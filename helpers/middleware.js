@@ -32,17 +32,11 @@ exports.paginatedResults = (model) => {
     const finalPage = numDocs / limit + 1;
 
     if (finalPage < page) {
-      const err = new Error("Page not found");
-      err.status = 404;
-      err.message = "Page not found";
-      return next(err);
+      return res.status(404).json({ message: "Page Not Found" });
     }
 
-    if (limit > 10) {
-      const err = new Error("Limit cannot exceed 10");
-      err.message = "Limit cannot exceed 10";
-      err.status = 403;
-      return next(err);
+    if (limit > 20) {
+      return res.status(400).json({ message: "Limit cannot exceed 20" });
     }
 
     const results = {};

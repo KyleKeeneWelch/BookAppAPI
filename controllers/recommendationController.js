@@ -290,10 +290,13 @@ exports.recommendation_book_like_post = [
       return res.status(400).json({ message: "Validation Error" });
     }
 
+    console.log(req.params.id);
     // Check if recommendation exists
     const recommendation = await Recommendation.findOne({
       user: req.params.id,
     }).exec();
+
+    console.log(recommendation);
 
     if (!recommendation) {
       return res.status(404).json({ message: "Recommendation not found" });
