@@ -40,7 +40,7 @@ exports.login_post = [
       };
 
       const accessToken = jwt.sign(userInfo, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "20s",
+        expiresIn: "10m",
       });
       const refreshToken = jwt.sign(
         userInfo,
@@ -151,7 +151,7 @@ exports.refresh_token_get = asyncHandler(async (req, res, next) => {
 
     // Create new access token
     const accessToken = jwt.sign(userInfo, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "20s",
+      expiresIn: "10m",
     });
     // Send as response
     res.json({ email: user.email, accessToken });

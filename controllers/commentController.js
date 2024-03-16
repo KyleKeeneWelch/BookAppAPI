@@ -48,7 +48,6 @@ exports.comment_post = [
 exports.comment_put = [
   body("body").trim().isLength({ min: 1 }).escape(),
   asyncHandler(async (req, res, next) => {
-    console.log(req.body.body);
     const errors = validationResult(req);
 
     // Check if comment exists
@@ -68,9 +67,6 @@ exports.comment_put = [
       body: req.body.body,
       _id: req.params.commentId,
     });
-
-    console.log(existingComment);
-    console.log(comment);
 
     // Update comment
     await Comment.findByIdAndUpdate(req.params.commentId, comment, {});

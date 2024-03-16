@@ -57,7 +57,7 @@ exports.paginatedResults = (model) => {
     // Check the paginated model and populate associated fields before sending response.
     try {
       if (model.collection.collectionName == "books") {
-        if (bookSearch != "undefined") {
+        if (bookSearch && bookSearch != "undefined") {
           results.results = await model
             .find({
               $or: [
@@ -79,7 +79,7 @@ exports.paginatedResults = (model) => {
         }
         next();
       } else if (model.collection.collectionName == "reviews") {
-        if (bookId != "undefined") {
+        if (bookId && bookId != "undefined") {
           results.results = await model
             .find({ book: bookId })
             .limit(limit)
